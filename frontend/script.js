@@ -5,7 +5,7 @@ const API_URL = '/api';
 let currentSessionId = null;
 
 // DOM elements
-let chatMessages, chatInput, sendButton, totalCourses, courseTitles;
+let chatMessages, chatInput, sendButton, totalCourses, courseTitles, newChatButton, themeToggle;
 
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
@@ -15,8 +15,11 @@ document.addEventListener('DOMContentLoaded', () => {
     sendButton = document.getElementById('sendButton');
     totalCourses = document.getElementById('totalCourses');
     courseTitles = document.getElementById('courseTitles');
+    newChatButton = document.getElementById('newChatButton');
+    themeToggle = document.getElementById('themeToggle');
     
     setupEventListeners();
+    initializeTheme();
     createNewSession();
     loadCourseStats();
 });
@@ -29,6 +32,19 @@ function setupEventListeners() {
         if (e.key === 'Enter') sendMessage();
     });
     
+    // New chat button
+    newChatButton.addEventListener('click', startNewChat);
+    
+    // Theme toggle button
+    if (themeToggle) {
+        themeToggle.addEventListener('click', toggleTheme);
+        themeToggle.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                toggleTheme();
+            }
+        });
+    }
     
     // Suggested questions
     document.querySelectorAll('.suggested-item').forEach(button => {
@@ -122,10 +138,22 @@ function addMessage(content, type, sources = null, isWelcome = false) {
     let html = `<div class="message-content">${displayContent}</div>`;
     
     if (sources && sources.length > 0) {
+        // Convert sources to clickable links
+        const sourceElements = sources.map(source => {
+            // Handle both old string format and new object format for compatibility
+            if (typeof source === 'string') {
+                return `<span class="source-text">${source}</span>`;
+            } else if (source.url) {
+                return `<a href="${source.url}" target="_blank" rel="noopener noreferrer">${source.text}</a>`;
+            } else {
+                return `<span class="source-text">${source.text}</span>`;
+            }
+        }).join(' ');
+        
         html += `
             <details class="sources-collapsible">
                 <summary class="sources-header">Sources</summary>
-                <div class="sources-content">${sources.join(', ')}</div>
+                <div class="sources-content">${sourceElements}</div>
             </details>
         `;
     }
@@ -150,6 +178,21 @@ async function createNewSession() {
     currentSessionId = null;
     chatMessages.innerHTML = '';
     addMessage('Welcome to the Course Materials Assistant! I can help you with questions about courses, lessons and specific content. What would you like to know?', 'assistant', null, true);
+}
+
+function startNewChat() {
+    // Clear current conversation and start fresh
+    currentSessionId = null;
+    chatMessages.innerHTML = '';
+    addMessage('Welcome to the Course Materials Assistant! I can help you with questions about courses, lessons and specific content. What would you like to know?', 'assistant', null, true);
+    
+    // Clear input field if it has text
+    if (chatInput.value.trim()) {
+        chatInput.value = '';
+    }
+    
+    // Focus on input field
+    chatInput.focus();
 }
 
 // Load course statistics
@@ -189,3 +232,63 @@ async function loadCourseStats() {
         }
     }
 }
+
+// Theme Functions
+function initializeTheme() {
+    // Check for saved theme preference or default to dark
+    const savedTheme = localStorage.getItem('theme') || 'dark';
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    
+    // Use saved theme, or system preference if no saved theme
+    const initialTheme = savedTheme !== 'dark' && savedTheme !== 'light' 
+        ? (prefersDark ? 'dark' : 'light') 
+        : savedTheme;
+        
+    applyTheme(initialTheme);
+    
+    // Update aria-label based on current theme
+    updateAriaLabel();
+}
+
+function toggleTheme() {
+    const currentTheme = document.body.classList.contains('light-theme') ? 'light' : 'dark';
+    const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+    
+    // Add rotation animation class
+    if (themeToggle) {
+        themeToggle.classList.add('rotating');
+        setTimeout(() => {
+            themeToggle.classList.remove('rotating');
+        }, 300);
+    }
+    
+    applyTheme(newTheme);
+    localStorage.setItem('theme', newTheme);
+    
+    // Update aria-label
+    updateAriaLabel();
+}
+
+function applyTheme(theme) {
+    if (theme === 'light') {
+        document.body.classList.add('light-theme');
+    } else {
+        document.body.classList.remove('light-theme');
+    }
+}
+
+function updateAriaLabel() {
+    if (themeToggle) {
+        const isLight = document.body.classList.contains('light-theme');
+        themeToggle.setAttribute('aria-label', isLight ? 'Switch to dark mode' : 'Switch to light mode');
+    }
+}
+
+// Listen for system theme changes
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+    // Only auto-switch if user hasn't manually set a preference
+    if (!localStorage.getItem('theme')) {
+        applyTheme(e.matches ? 'dark' : 'light');
+        updateAriaLabel();
+    }
+});

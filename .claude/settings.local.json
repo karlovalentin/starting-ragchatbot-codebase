@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__playwright__browser_take_screenshot",
+      "Bash(mkdir:*)",
+      "Bash(python -m pytest tests/test_rag_system.py::TestRAGSystemErrorDiagnosis::test_diagnose_query_failed_issue -v -s)",
+      "Bash(python3 -m pytest --version)",
+      "Bash(uv run:*)",
+      "Bash(python -m pytest tests/test_ai_generator.py::TestSequentialToolCalling::test_backward_compatibility_preserved -v)",
+      "Bash(./scripts/format.sh:*)",
+      "Bash(./scripts/lint.sh:*)",
+      "Bash(git add:*)"
+    ],
+    "deny": []
+  }
+}
